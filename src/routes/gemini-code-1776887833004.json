@@ -20,8 +20,17 @@
       "category": "Web / Base de données",
       "severity": "Critique",
       "cvss": {
-        "score": 9.8,
-        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        "AV": "N",
+        "AC": "L",
+        "AT": "N",
+        "PR": "N",
+        "UI": "N",
+        "VC": "N",
+        "VI": "N",
+        "VA": "N",
+        "SC": "N",
+        "SI": "N",
+        "SA": "N"
       },
       "description": "Une faille d'injection SQL a été identifiée sur le paramètre `id` de l'endpoint `/api/users`.",
       "procedure": "1. Intercepter la requête avec Burp Suite.\n2. Injecter le payload `' OR SLEEP(5)--`.\n3. Observer le délai de réponse.",

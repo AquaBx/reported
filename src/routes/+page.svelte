@@ -142,8 +142,8 @@
 			<Sidebar.Group class="px-0 h-full">
 				<Sidebar.GroupContent class="h-full">
 					{#if activeIndex !== null}
-						<div class="flex flex-col h-full bg-gray-50/30 p-4">
-							<div class="flex items-center justify-between mb-6">
+						<div class="flex flex-col p-4 h-full">
+							<div class="flex items-center justify-between">
 								<h2
 									class="text-sm font-bold uppercase tracking-wider text-gray-500"
 								>
@@ -169,20 +169,17 @@
 									/>
 								</div>
 
-								<div class="grid grid-cols-2 gap-4">
-									<div class="space-y-1.5">
-										<Label>Catégorie</Label>
-										<Input
-											bind:value={
-												report.vulnerabilities[
-													activeIndex
-												].category
-											}
-										/>
-									</div>
+								<div class="space-y-1.5">
+									<Label>Catégorie</Label>
+									<Input
+										bind:value={
+											report.vulnerabilities[activeIndex]
+												.category
+										}
+									/>
 								</div>
 
-								<div class="col-span-2 mt-4 mb-2">
+								<div class="space-y-1.5">
 									<Cvss4Calculator
 										bind:vector={
 											report.vulnerabilities[activeIndex]
