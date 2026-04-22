@@ -1,0 +1,33 @@
+{
+  "document": {
+    "title": "Rapport d'Audit de Sécurité",
+    "version": "1.0",
+    "date": "2026-04-22",
+    "auditor": "Ton Nom / Ton Entreprise",
+    "client": "Entreprise Cible",
+    "confidentiality": "Strictement Confidentiel"
+  },
+  "style": {
+    "themeColor": "blue-600",
+    "fontFamily": "font-sans",
+    "headerStyle": "minimalist",
+    "logoBase64": "data:image/png;base64,..."
+  },
+  "vulnerabilities": [
+    {
+      "id": "VULN-001",
+      "title": "Injection SQL (Blind)",
+      "category": "Web / Base de données",
+      "severity": "Critique",
+      "cvss": {
+        "score": 9.8,
+        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+      },
+      "description": "Une faille d'injection SQL a été identifiée sur le paramètre `id` de l'endpoint `/api/users`.",
+      "procedure": "1. Intercepter la requête avec Burp Suite.\n2. Injecter le payload `' OR SLEEP(5)--`.\n3. Observer le délai de réponse.",
+      "impact": "Compromission totale de la base de données clients.",
+      "remediation": "Utiliser des requêtes préparées (Prepared Statements) via l'ORM.",
+      "status": "Ouvert"
+    }
+  ]
+}
