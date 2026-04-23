@@ -43,6 +43,19 @@ export interface Vulnerability {
     status: string;
 }
 
+export interface Contact {
+    name: string;
+    role: string;
+    email: string;
+}
+
+export interface Tracking {
+    version: string;
+    date: string;
+    author: string;
+    description: string;
+}
+
 export interface Report {
     document: {
         client: string;
@@ -51,6 +64,33 @@ export interface Report {
         date: Date;
         auditor: string;
         confidentiality: string;
+    };
+    contacts: Contact[];
+    tracking: Tracking[];
+    introduction: {
+        context: string;
+        objectives: string;
+        stakeholders: string;
+        mailingList: string;
+        period: string;
+        scope: string;
+    };
+    managementSummary: {
+        workDone: string;
+        globalSecurityLevel: string;
+        vulnerabilitiesOverview: string;
+        recommendationsOverview: string;
+    };
+    detailedWork: {
+        methodology: string;
+        discovery: string;
+        osint: string;
+        networkScan: string;
+        appScan: string;
+        waf: string;
+        xss: string;
+        sqli: string;
+        permissions: string;
     };
     style: {
         themeColor: string;
