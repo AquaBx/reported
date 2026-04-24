@@ -93,7 +93,7 @@
 	let scoreColor = $derived(colorCvss(score));
 </script>
 
-<div class="rounded-lg border bg-card p-4 shadow-sm">
+<div class="">
 	<div class="flex items-center justify-between border-b pb-4 mb-4">
 		<div>
 			<h3 class="font-semibold text-sm">Calculateur CVSS v4.0</h3>
@@ -124,7 +124,10 @@
 							<span class="hidden sm:inline">— {metric.name}</span
 							>
 						</Tooltip.Trigger>
-						<Tooltip.Content side="right" class="max-w-62.5 text-xs">
+						<Tooltip.Content
+							side="right"
+							class="max-w-62.5 text-xs"
+						>
 							<p>
 								<strong>{metric.name} :</strong>
 								{metric.description}

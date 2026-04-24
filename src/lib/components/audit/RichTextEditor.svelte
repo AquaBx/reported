@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import "quill/dist/quill.snow.css"; // Le thème par défaut de Quill
+	import type Quill from "quill";
 
 	let { value = $bindable("") } = $props<{ value: string }>();
 
@@ -55,7 +56,8 @@
 		border: none !important;
 		font-family: inherit !important;
 	}
-	:global(.ql-editor pre), :global(.ql-editor .ql-code-block-container) {
+	:global(.ql-editor pre),
+	:global(.ql-editor .ql-code-block-container) {
 		background-color: #09090b !important; /* zinc-950 */
 		color: #4ade80 !important; /* green-400 */
 		padding: 1rem !important;
@@ -64,7 +66,8 @@
 		margin-bottom: 0.5rem !important;
 		overflow-x: auto !important;
 		border: 1px solid #27272a !important; /* zinc-800 */
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+			"Liberation Mono", "Courier New", monospace !important;
 		font-size: 0.875rem !important;
 		line-height: 1.25rem !important;
 	}
@@ -73,7 +76,8 @@
 		color: hsl(var(--muted-foreground)) !important;
 		padding: 0.125rem 0.375rem !important;
 		border-radius: 0.375rem !important;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+			"Liberation Mono", "Courier New", monospace !important;
 		font-size: 0.875rem !important;
 		border: 1px solid hsl(var(--border)) !important;
 	}
