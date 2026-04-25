@@ -1,160 +1,106 @@
-<script setup lang="ts">
-import { h, resolveComponent } from 'vue'
-import type { TableColumn } from '@nuxt/ui'
-import { useClipboard } from '@vueuse/core'
+<script lang="ts">
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import { formatDate } from "$lib/utils";
+	import { goto } from "$app/navigation";
+	import { ExternalLink, FileUp, Download } from "@lucide/svelte";
+	import DataListView from "$lib/components/DataListView.svelte";
+	import type { Audit } from "$lib/interfaces.js";
 
-const UButton = resolveComponent('UButton')
-const UBadge = resolveComponent('UBadge')
-const UDropdownMenu = resolveComponent('UDropdownMenu')
+	let { data } = $props();
+	const audits = $derived(data.audits);
 
-const toast = useToast()
-const { copy } = useClipboard()
+	function getStatusVariant(state: string) {
+		const variants: any = { Approved: 'success', Review: 'warning', Cancelled: 'error', 'In Progress': 'info' };
+		return variants[state] || 'secondary';
+	}
 
-interface Audit {
-  _id: string
-  name: string
-  client: {
-    name: string
-    shortname: string
-  }
-  date_start?: string
-  date_end?: string
-  state: 'In Progress' | 'Review' | 'Approved' | 'Cancelled'
-}
+	const fields = [
+		{ id: 'name', label: "Nom de l'audit", type: 'text', placeholder: 'ex: Audit Interne Q2', required: true },
+		{ id: 'date_start', label: 'Date de début', type: 'date', required: true },
+		{ id: 'date_end', label: 'Date de fin', type: 'date', required: true }
+	];
 
-const endpoint = computed(() => "/api/audits")
+	function handleImport(e: Event) {
+		const file = (e.target as HTMLInputElement).files?.[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = async (ev) => {
+			const importData = ev.target?.result as string;
+			const formData = new FormData();
+			formData.append('importData', importData);
+			
+			const response = await fetch('?/import', {
+				method: 'POST',
+				body: formData,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
 
-const { data } = await useFetch<Audit[]>(endpoint, {
-  default: () => [],
-})
+			const result = await response.json();
+			if (result.type === 'success' && result.data?.id) {
+				goto(`/audits/${result.data.id}`);
+			} else {
+				location.reload();
+			}
+		};
+		reader.readAsText(file);
+	}
 
-const columns: TableColumn<Audit>[] = [{
-  accessorKey: '_id',
-  header: '#',
-  cell: ({ row }) => `#${row.original._id.slice(-6)}`
-}, {
-  accessorKey: 'name',
-  header: 'Audit Name'
-}, {
-  id: 'client',
-  header: ({ column }) => {
-    const isSorted = column.getIsSorted()
-
-    return h(UButton, {
-      color: 'neutral',
-      variant: 'ghost',
-      label: 'Customer',
-      icon: isSorted ? (isSorted === 'asc' ? 'i-lucide-arrow-up-narrow-wide' : 'i-lucide-arrow-down-wide-narrow') : 'i-lucide-arrow-up-down',
-      class: '-mx-2.5',
-      onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
-    })
-  },
-  cell: ({ row }) => row.original.client?.name || 'N/A'
-}, {
-  accessorKey: 'date_start',
-  header: 'From',
-  cell: ({ row }) => {
-    if (!row.original.date_start) return '-'
-    return new Date(row.original.date_start).toLocaleString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-}, {
-  accessorKey: 'date_end',
-  header: 'To',
-  cell: ({ row }) => {
-    if (!row.original.date_end) return '-'
-    return new Date(row.original.date_end).toLocaleString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-}, {
-  accessorKey: 'state',
-  header: 'Status',
-  cell: ({ row }) => {
-    const status = row.original.state
-    const color = ({
-      'Cancelled': 'error' as const,
-      'Approved': 'success' as const,
-      'Review': 'warning' as const,
-      'In Progress': 'info' as const
-    })[status] || 'neutral'
-
-    return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () => status)
-  }
-}, {
-  id: 'actions',
-  enableHiding: false,
-  meta: {
-    class: {
-      td: 'text-right'
-    }
-  },
-  cell: ({ row }) => {
-    const items = [{
-      type: 'label',
-      label: 'Actions'
-    }, {
-      label: 'Copy Audit ID',
-      onSelect() {
-        copy(row.original._id)
-
-        toast.add({
-          title: 'Audit ID copied to clipboard!',
-          color: 'success',
-          icon: 'i-lucide-circle-check'
-        })
-      }
-    }, {
-      label: row.getIsExpanded() ? 'Collapse' : 'Expand',
-      onSelect() {
-        row.toggleExpanded()
-      }
-    }, {
-      type: 'separator'
-    }, {
-      label: 'Open Audit',
-      to: `/audits/${row.original._id}`
-    }]
-
-    return h(UDropdownMenu, {
-      'content': {
-        align: 'end'
-      },
-      items,
-      'aria-label': 'Actions dropdown'
-    }, () => h(UButton, {
-      'icon': 'i-lucide-ellipsis-vertical',
-      'color': 'neutral',
-      'variant': 'ghost',
-      'aria-label': 'Actions dropdown'
-    }))
-  }
-}]
-
+	function handleExport(audit: Audit) {
+		const data = JSON.stringify(audit, null, 2);
+		const a = document.createElement("a");
+		a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+		a.download = `audit_${audit.name}.json`;
+		a.click();
+	}
 </script>
 
-<template>
-  <div class="size-full flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">Audits</h1>
-      <UButton icon="i-lucide-plus" label="New Audit" color="primary" />
-    </div>
+{#snippet titleCell(audit:Audit)}
+	<span class="font-medium">{audit.name}</span>
+{/snippet}
 
-    <UTable
-      ref="table"
-      :data="data"
-      :columns="columns"
-      sticky
-      class="flex-1"
-    >
-      <template #expanded="{ row }">
-        <pre class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg text-xs">{{ row.original }}</pre>
-      </template>
-    </UTable>
-  </div>
-</template>
+{#snippet customerCell(audit:Audit)}
+	{audit.client ? audit.client.name : 'N/A'}
+{/snippet}
+
+{#snippet dateStartCell(audit:Audit)}
+	{formatDate(audit.date_start)}
+{/snippet}
+
+{#snippet dateEndCell(audit:Audit)}
+	{formatDate(audit.date_end)}
+{/snippet}
+
+{#snippet statusCell(audit:Audit)}
+	<Badge variant={getStatusVariant(audit.state)}>{audit.state}</Badge>
+{/snippet}
+
+{#snippet rowActions(audit:Audit)}
+	<Button variant="secondary" onclick={() => handleExport(audit)} size="icon"><Download class="h-4 w-4" /></Button>
+	<Button variant="secondary" onclick={() => goto(`/audits/${audit._id}`)} size="icon"><ExternalLink/></Button>
+{/snippet}
+
+{#snippet extraActions()}
+	<Button variant="outline" onclick={() => document.getElementById('import-input')?.click()}>
+		<FileUp class="mr-2 h-4 w-4" /> Importer JSON
+	</Button>
+	<input type="file" id="import-input" class="hidden" accept=".json" onchange={handleImport} />
+{/snippet}
+
+<DataListView 
+	title="Audits" 
+	description="Gérez et suivez vos audits de sécurité." 
+	addLabel="Nouvel Audit"
+	items={audits}
+	deleteAction="?/delete"
+	{rowActions}
+	{extraActions}
+	{fields}
+	columns={[
+		{ header: "Nom de l'audit", cell: titleCell },
+		{ header: "Client", cell: customerCell },
+		{ header: "Début", cell: dateStartCell },
+		{ header: "Fin", cell: dateEndCell },
+		{ header: "Statut", cell: statusCell }
+	]}
+/>

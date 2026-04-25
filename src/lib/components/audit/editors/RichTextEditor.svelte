@@ -3,7 +3,7 @@
 	import "quill/dist/quill.snow.css"; // Le thème par défaut de Quill
 	import type Quill from "quill";
 
-	let { value = $bindable("") } = $props<{ value: string }>();
+	let { value = $bindable() } = $props<{ value: string }>();
 
 	let editorContainer: HTMLElement;
 	let quill: Quill;

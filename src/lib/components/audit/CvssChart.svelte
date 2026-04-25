@@ -1,50 +1,27 @@
 <script lang="ts">
 	import { calculateBaseScore } from "cvss4";
-	import { colors, toStringVector, type Vulnerability } from "$lib/index";
+	import { colors, toStringVector, severityKey } from "$lib/index";
 
-	interface Props {
-		vulnerabilities: Vulnerability[];
-	}
+	let { vulnerabilities }: { vulnerabilities: any[] } = $props();
 
-	let { vulnerabilities }: Props = $props();
-
-	let currentStats = $derived.by(() => {
-		const counts = { Critical: 0, High: 0, Medium: 0, Low: 0, Info: 0 };
+	let stats = $derived.by(() => {
+		const counts: any = { Critical: 0, High: 0, Medium: 0, Low: 0, Info: 0 };
 		vulnerabilities.forEach((v) => {
-			try {
-				const score = calculateBaseScore(toStringVector(v.cvss));
-				if (typeof score === "number" && !isNaN(score)) {
-					if (score >= 9.0) counts.Critical++;
-					else if (score >= 7.0) counts.High++;
-					else if (score >= 4.0) counts.Medium++;
-					else if (score > 0) counts.Low++;
-					else counts.Info++;
-				}
-			} catch (e) {
-				counts.Info++;
-			}
+			try { counts[severityKey(calculateBaseScore(toStringVector(v.cvss)))]++; } catch(e) { counts.Info++; }
 		});
 		return counts;
 	});
 
-	let maxCount = $derived(Math.max(...Object.values(currentStats), 1));
+	let max = $derived(Math.max(...Object.values(stats) as number[], 1));
 </script>
 
 <div class="cvss-horizontal-chart">
-	{#each Object.entries(currentStats) as [severity, count]}
+	{#each Object.entries(stats) as [sev, count]}
 		<div class="chart-row">
-			<div class="row-label">{severity}</div>
+			<div class="row-label">{sev}</div>
 			<div class="row-bar-container">
-				<div
-					class="row-bar-fill"
-					style="width: {(count / maxCount) *
-						100}%; background-color: {colors[
-						severity as keyof typeof colors
-					]}"
-				>
-					{#if count > 0}
-						<span class="row-bar-count">{count}</span>
-					{/if}
+				<div class="row-bar-fill" style="width: {(count as number / max) * 100}%; background-color: {colors[sev as keyof typeof colors]}">
+					{#if count as number > 0} <span class="row-bar-count">{count}</span> {/if}
 				</div>
 			</div>
 		</div>

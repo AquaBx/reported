@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import { Database, Plus, ChevronRight } from "lucide-svelte";
+	import { Database, Plus, ChevronRight } from "@lucide/svelte";
 	import type { Snippet } from "svelte";
 
 	let { 

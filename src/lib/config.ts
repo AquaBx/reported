@@ -1,5 +1,3 @@
-import type { Vulnerability } from "./index";
-
 export const DICTIONARY = {
     config: { fr: "Design & Projet", en: "Design & Project" },
     contacts: { fr: "Vos Contacts", en: "Contacts" },
@@ -14,11 +12,13 @@ export const DICTIONARY = {
     lang: { fr: "Langue du Rapport", en: "Report Language" },
     title: { fr: "Titre du Rapport", en: "Report Title" },
     client: { fr: "Client", en: "Client" },
-    version: { fr: "Version", en: "Version" },
+    date_start: { fr: "Date de début", en: "Start Date" },
+    date_end: { fr: "Date de fin", en: "End Date" },
     date: { fr: "Date", en: "Date" },
     confidentiality: { fr: "Confidentialité", en: "Confidentiality" },
     themeColor: { fr: "Couleur Thème", en: "Theme Color" },
     customCSS: { fr: "CSS Personnalisé", en: "Custom CSS" },
+    status: { fr: "Statut", en: "Status" },
     name: { fr: "Nom", en: "Name" },
     role: { fr: "Rôle", en: "Role" },
     email: { fr: "Email", en: "Email" },

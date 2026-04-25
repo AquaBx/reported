@@ -1,135 +1,68 @@
-import { type Report, createReport, DEFAULT_CSS } from "./index";
-import { Bug, FileText, Users, History, Info, BarChart3, ShieldCheck, Edit2, Database } from "lucide-svelte";
-import { DICTIONARY, VULNERABILITY_DB, WORK_DB } from "./config";
+import { Bug, Users, History, Info, ChartColumn, ShieldCheck, Settings as SettingsIcon, SquarePen } from "@lucide/svelte";
+import { DICTIONARY } from "./config";
+import type { Audit, Client, Settings, Vulnerability, Work } from "./interfaces";
+import { MergeOrCreateAudit } from "./interfaces";
 
-export type Section = "config" | "contacts" | "tracking" | "introduction" | "summary" | "work" | "vulnerabilities" | "vulnerability_db" | "work_db" | null;
+export type Section = "config" | "contacts" | "tracking" | "introduction" | "summary" | "work" | "vulnerabilities" | "vulnerability_db" | "work_db";
 
-export interface FieldConfig {
-    id: string;
-    label: string;
-    type: "input" | "textarea" | "rich" | "color" | "cvss" | "list" | "select";
-    path?: string;
-    fields?: FieldConfig[];
-    options?: { label: string, value: string }[];
-}
+const CVSS_DEFAULT = { AV: "N", AC: "L", AT: "N", PR: "N", UI: "N", VC: "N", VI: "N", VA: "N", SC: "N", SI: "N", SA: "N" };
 
-export interface SectionConfig {
-    title: string;
-    icon: any;
-    fields: FieldConfig[];
-}
+const f = (id: string, type: any = 'rich', path?: string) => ({ id, label: id.replace(/intro_|sum_/, ''), type, path: path || `content.${id}` });
 
 export class ReportState {
-    report = $state<Report>(createReport());
-    activeSection = $state<Section>(null);
+    report = $state<Audit>(null!);
+    activeSection = $state<Section | null>(null);
     activeCollection = $state<"vulnerabilities" | "detailedWork" | null>(null);
     activeIndex = $state<number | null>(null);
 
-    dict = DICTIONARY;
-    vulnDb = VULNERABILITY_DB;
-    workDb = WORK_DB;
+    vulnDb = $state<Vulnerability[]>([]);
+    workDb = $state<Work[]>([]);
+    clients = $state<Client[]>([]);
+    settings = $state<Settings>({ languages: [], reportStyle: "", themeColor: "" })
+    lang = $derived(this.report.lang);
 
-    vulnsForLang = $derived(this.vulnDb.map(v => ({
-        ...v,
-        title: v.title[this.report.meta.lang],
-        category: v.category[this.report.meta.lang],
-        description: v.description[this.report.meta.lang],
-        impact: v.impact[this.report.meta.lang],
-        remediation: v.remediation[this.report.meta.lang],
-    })));
-    
-    worksForLang = $derived(this.workDb.map(w => ({
-        ...w,
-        title: w.title[this.report.meta.lang],
-        description: w.description[this.report.meta.lang],
-    })));
+    constructor(initialData: Audit, dbVulnerabilities: Vulnerability[], dbWorks: Work[], dbClients: Client[], dbSettings: Settings) {
+        this.vulnDb = dbVulnerabilities;
+        this.workDb = dbWorks;
+        this.clients = dbClients;
+        this.settings = dbSettings;
+        this.report = MergeOrCreateAudit(initialData);
+    }
 
-    t = (key: string) => (this.dict as any)[key]?.[this.report.meta.lang] || key;
+    t = (key: string) => (DICTIONARY as any)[key]?.[this.lang] || key;
 
-    sectionsConfig = $derived.by<Record<string, SectionConfig>>(() => ({
-        config: {
-            title: this.t('config'), icon: FileText,
-            fields: [
-                { id: 'lang', label: 'lang', type: 'select', path: 'meta.lang', options: [{label: 'Français', value: 'fr'}, {label: 'English', value: 'en'}] },
-                { id: 'title', label: 'title', type: 'input', path: 'meta.title' },
-                { id: 'client', label: 'client', type: 'input', path: 'meta.client' },
-                { id: 'version', label: 'version', type: 'input', path: 'meta.version' },
-                { id: 'date', label: 'date', type: 'input', path: 'meta.date' },
-                { id: 'confidentiality', label: 'confidentiality', type: 'input', path: 'meta.confidentiality' },
-                { id: 'themeColor', label: 'themeColor', type: 'color', path: 'meta.themeColor' },
-                { id: 'customCSS', label: 'customCSS', type: 'textarea', path: 'meta.customCSS' }
-            ]
-        },
-        contacts: {
-            title: this.t('contacts'), icon: Users,
-            fields: [{ id: 'contacts', label: 'contacts', type: 'list', path: 'contacts', fields: [
-                { id: 'name', label: 'name', type: 'input' },
-                { id: 'role', label: 'role', type: 'input' },
-                { id: 'email', label: 'email', type: 'input' }
-            ]}]
-        },
-        tracking: {
-            title: this.t('tracking'), icon: History,
-            fields: [{ id: 'tracking', label: 'tracking', type: 'list', path: 'tracking', fields: [
-                { id: 'version', label: 'version', type: 'input' },
-                { id: 'date', label: 'date', type: 'input' },
-                { id: 'author', label: 'author', type: 'input' },
-                { id: 'description', label: 'description', type: 'input' }
-            ]}]
-        },
-        introduction: {
-            title: this.t('introduction'), icon: Info,
-            fields: [
-                { id: 'intro_context', label: 'context', type: 'rich', path: 'content.intro_context' },
-                { id: 'intro_objectives', label: 'objectives', type: 'rich', path: 'content.intro_objectives' },
-                { id: 'intro_stakeholders', label: 'stakeholders', type: 'rich', path: 'content.intro_stakeholders' },
-                { id: 'intro_mailing', label: 'mailing', type: 'rich', path: 'content.intro_mailing' },
-                { id: 'intro_period', label: 'period', type: 'input', path: 'content.intro_period' },
-                { id: 'intro_scope', label: 'scope', type: 'rich', path: 'content.intro_scope' }
-            ]
-        },
-        summary: {
-            title: this.t('summary'), icon: BarChart3,
-            fields: [
-                { id: 'sum_work', label: 'sum_work', type: 'rich', path: 'content.sum_work' },
-                { id: 'sum_security', label: 'sum_security', type: 'rich', path: 'content.sum_security' },
-                { id: 'sum_vulns', label: 'sum_vulns', type: 'rich', path: 'content.sum_vulns' },
-                { id: 'sum_recos', label: 'sum_recos', type: 'rich', path: 'content.sum_recos' }
-            ]
-        },
-        work: {
-            title: this.t('work'), icon: ShieldCheck,
-            fields: [
-                { id: 'title', label: 'title', type: 'input' },
-                { id: 'description', label: 'description', type: 'rich' }
-            ]
-        },
-        vulnerabilities: {
-            title: this.t('vulnerabilities'), icon: Bug,
-            fields: [
-                { id: 'title', label: 'title', type: 'input' },
-                { id: 'category', label: 'category', type: 'input' },
-                { id: 'cvss', label: 'cvss', type: 'cvss' },
-                { id: 'description', label: 'description', type: 'rich' },
-                { id: 'impact', label: 'impact', type: 'rich' },
-                { id: 'procedure', label: 'procedure', type: 'rich' },
-                { id: 'remediation', label: 'remediation', type: 'rich' }
-            ]
-        },
-        vulnerability_db: {
-            title: this.t('vulnerability_db'), icon: Database,
-            fields: []
-        },
-        work_db: {
-            title: this.t('vulnerability_db'), icon: Database,
-            fields: []
-        }
-    }));
+    private mapItem(item: any, fields: string[]) {
+        const mapped = { ...item };
+        fields.forEach(f => mapped[f] = item[f]?.[this.lang] || Object.values(item[f] || {})[0] || "");
+        return mapped;
+    }
 
-    editorInfo = $derived.by(() => {
-        if (this.activeIndex !== null && this.activeCollection) return this.sectionsConfig[this.activeCollection === 'vulnerabilities' ? 'vulnerabilities' : 'work'];
-        return this.activeSection ? this.sectionsConfig[this.activeSection] : { title: "Édition", icon: Edit2, fields: [] };
-    });
+    vulnsForLang = $derived(this.vulnDb.map(v => this.mapItem(v, ['title', 'category', 'description', 'impact', 'remediation'])));
+    worksForLang = $derived(this.workDb.map(w => this.mapItem(w, ['title', 'description'])));
+
+    get sectionsConfig(): Record<string, any> {
+        return {
+            config: {
+                title: "Configuration", icon: SettingsIcon, fields: [
+                    { id: 'lang', label: 'lang', type: 'select', path: 'lang', options: this.settings.languages.map(l => ({ label: l.label, value: l.code })) },
+                    { id: 'name', label: 'name', type: 'input', path: 'name' },
+                    { id: 'client', label: 'client', type: 'select', path: 'client', options: this.clients.map(c => ({ label: c.name, value: c })) },
+                    { id: 'state', label: 'status', type: 'select', path: 'state', options: ['In Progress', 'Review', 'Approved', 'Cancelled'].map(s => ({ label: s, value: s })) },
+                    { id: 'date_start', label: 'date_start', type: 'date', path: 'date_start' },
+                    { id: 'date_end', label: 'date_end', type: 'date', path: 'date_end' },
+                    { id: 'confidentiality', label: 'confidentiality', type: 'select', path: 'confidentiality', options: ['Confidentiel', 'Public'].map(s => ({ label: s, value: s })) },
+                ]
+            },
+            contacts: { title: this.t('contacts'), icon: Users, fields: [{ id: 'contacts', label: 'contacts', type: 'list', path: 'contacts', fields: ['name', 'role', 'email'].map(id => ({ id, label: id, type: 'input' })) }] },
+            tracking: { title: this.t('tracking'), icon: History, fields: [{ id: 'tracking', label: 'tracking', type: 'list', path: 'tracking', fields: ['version', 'date', 'author', 'description'].map(id => ({ id, label: id, type: 'input' })) }] },
+            introduction: { title: this.t('introduction'), icon: Info, fields: ['intro_context', 'intro_objectives', 'intro_stakeholders', 'intro_mailing', 'intro_period', 'intro_scope'].map(id => f(id, id.includes('period') ? 'input' : 'rich')) },
+            summary: { title: this.t('summary'), icon: ChartColumn, fields: ['sum_work', 'sum_security', 'sum_vulns', 'sum_recos'].map(id => f(id)) },
+            work: { title: this.t('work'), icon: ShieldCheck, fields: [{ id: 'title', label: 'title', type: 'input' }, f('description', 'rich', 'description')] },
+            vulnerabilities: { title: this.t('vulnerabilities'), icon: Bug, fields: [{ id: 'title', label: 'title', type: 'input' }, { id: 'category', label: 'category', type: 'input' }, { id: 'cvss', label: 'cvss', type: 'cvss' }, ...['description', 'impact', 'procedure', 'remediation'].map(id => f(id, 'rich', id))] }
+        };
+    }
+
+    editorInfo = $derived(this.activeIndex !== null ? this.sectionsConfig[this.activeCollection === 'vulnerabilities' ? 'vulnerabilities' : 'work'] : this.sectionsConfig[this.activeSection!] || { title: "Édition", icon: SquarePen, fields: [] });
 
     sommaire = $derived([
         { numero: "1", title: this.t('contacts') },
@@ -137,88 +70,62 @@ export class ReportState {
         { numero: "3", title: this.t('introduction') },
         { numero: "4", title: this.t('summary') },
         { numero: "5", title: this.t('work') },
-        ...this.report.detailedWork.map((task, i) => ({ numero: `5.${i + 1}`, title: task.title })),
+        ...this.report.detailedWork.map((t, i) => ({ numero: `5.${i + 1}`, title: t.title })),
         { numero: "6", title: this.t('vulns_discovered') },
-        ...this.report.vulnerabilities.map((vuln, i) => ({ numero: `6.${i + 1}`, title: vuln.title })),
+        ...this.report.vulnerabilities.map((v, i) => ({ numero: `6.${i + 1}`, title: v.title })),
     ]);
 
-    openSection = (s: Section) => { this.activeIndex = null; this.activeCollection = null; this.activeSection = s; };
-    openVulnerability = (i: number) => { this.activeSection = null; this.activeCollection = 'vulnerabilities'; this.activeIndex = i; };
-    openWorkItem = (i: number) => { this.activeSection = null; this.activeCollection = 'detailedWork'; this.activeIndex = i; };
-    closeEditor = () => { this.activeSection = null; this.activeCollection = null; this.activeIndex = null; };
+    open = (s: Section | null = null, coll: any = null, idx: any = null) => { this.activeSection = s; this.activeCollection = coll; this.activeIndex = idx; };
+    closeEditor = () => this.open();
+    openVulnerability = (i: number) => this.open(null, 'vulnerabilities', i);
+    openWorkItem = (i: number) => this.open(null, 'detailedWork', i);
+    openLibrary = (type: 'vuln' | 'work') => this.open(type === 'vuln' ? 'vulnerability_db' : 'work_db');
 
-    addContact = () => this.report.contacts.push({ name: "", role: "", email: "" });
-    addTracking = () => this.report.tracking.push({ version: "", date: "", author: "", description: "" });
-    addWork = () => {
-        this.report.detailedWork.push({ title: "Nouveaux travaux", description: "" });
-        this.openWorkItem(this.report.detailedWork.length - 1);
-    };
-    addWorkFromDb = (template: any) => {
-        this.report.detailedWork.push({
-            title: template.title || "Nouveau travail",
-            description: template.description || ""
-        });
-        this.openWorkItem(this.report.detailedWork.length - 1);
+    addItem = (coll: 'contacts' | 'tracking' | 'detailedWork' | 'vulnerabilities', item: any) => {
+        (this.report as any)[coll] = [...(this.report as any)[coll], item];
+        if (coll === 'detailedWork') this.openWorkItem(this.report.detailedWork.length - 1);
+        if (coll === 'vulnerabilities') this.openVulnerability(this.report.vulnerabilities.length - 1);
     };
 
-    addVulnerability = () => {
-        this.report.vulnerabilities.push({
-            id: crypto.randomUUID(), title: "Nouvelle vuln", category: "Web",
-            cvss: { AV: "N", AC: "L", AT: "N", PR: "N", UI: "N", VC: "N", VI: "N", VA: "N", SC: "N", SI: "N", SA: "N" },
-            description: "", procedure: "", impact: "", remediation: ""
-        });
-        this.openVulnerability(this.report.vulnerabilities.length - 1);
+    addCurrentSectionItem = () => {
+        if (this.activeSection === 'contacts') this.addItem('contacts', { name: "", role: "", email: "" });
+        if (this.activeSection === 'tracking') this.addItem('tracking', { version: "", date: "", author: "", description: "" });
     };
 
-    addVulnerabilityFromDb = (template: any) => {
-        this.report.vulnerabilities.push({
-            id: crypto.randomUUID(),
-            title: template.title || "Nouvelle vuln",
-            category: template.category || "Web",
-            cvss: template.cvss ? { ...template.cvss } : { AV: "N", AC: "L", AT: "N", PR: "N", UI: "N", VC: "N", VI: "N", VA: "N", SC: "N", SI: "N", SA: "N" },
-            description: template.description || "",
-            procedure: template.procedure || "",
-            impact: template.impact || "",
-            remediation: template.remediation || ""
-        });
-        this.openVulnerability(this.report.vulnerabilities.length - 1);
+    addNewWork = () => this.addItem('detailedWork', { title: "Nouveaux travaux", description: "" });
+    addNewVulnerability = () => this.addItem('vulnerabilities', { id: crypto.randomUUID(), title: "Nouvelle vuln", category: "Web", cvss: { ...CVSS_DEFAULT }, description: "", procedure: "", impact: "", remediation: "" });
+
+    addFromDb = (tpl: any, type: 'vuln' | 'work') => {
+        const get = (v: any) => v?.[this.lang] || Object.values(v || {})[0] || "";
+        if (type === 'vuln') {
+            this.addItem('vulnerabilities', { id: crypto.randomUUID(), title: get(tpl.title), category: get(tpl.category) || "Web", cvss: tpl.cvss ? { ...tpl.cvss } : { ...CVSS_DEFAULT }, description: get(tpl.description), procedure: get(tpl.procedure), impact: get(tpl.impact), remediation: get(tpl.remediation) });
+        } else {
+            this.addItem('detailedWork', { title: get(tpl.title), description: get(tpl.description) });
+        }
     };
 
-    deleteVulnerability = (i: number) => {
-        this.report.vulnerabilities.splice(i, 1);
+    deleteItem = (coll: 'detailedWork' | 'vulnerabilities', i: number) => {
+        (this.report as any)[coll] = (this.report as any)[coll].filter((_: any, idx: number) => idx !== i);
         this.closeEditor();
-    };
-
-    deleteWork = (i: number) => {
-        this.report.detailedWork.splice(i, 1);
-        this.closeEditor();
-    };
-
-    saveReport = () => {
-        const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.report, null, 2));
-        const a = document.createElement("a");
-        a.href = data; a.download = `rapport_${this.report.meta.client}.json`; a.click();
     };
 
     exportHTML = () => {
         const el = document.getElementById("report-preview");
         if (!el) return;
-        const html = `<!DOCTYPE html><html><head><style>${this.report.meta.customCSS}</style></head><body><div style="--report-accent: ${this.report.meta.themeColor}">${el.outerHTML}</div></body></html>`;
-        const blob = new Blob([html], { type: "text/html" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob); a.download = `rapport_${this.report.meta.client}.html`; a.click();
+        const html = `<!DOCTYPE html><html><head><style>${this.settings.reportStyle}</style></head><body><div style="--report-accent: ${this.settings.themeColor}">${el.outerHTML}</div></body></html>`;
+        const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([html], { type: "text/html" })); a.download = `rapport_${this.report.client?.name}.html`; a.click();
+    };
+
+    exportJSON = () => {
+        const data = JSON.stringify(this.report, null, 2);
+        const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = `audit_${this.report.name}.json`; a.click();
     };
 
     loadReport = (e: Event) => {
         const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const data = JSON.parse(ev.target?.result as string);
-                if (!data.meta.customCSS) data.meta.customCSS = DEFAULT_CSS;
-                this.report = data;
-            };
-            reader.readAsText(file);
-        }
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => this.report = JSON.parse(ev.target?.result as string);
+        reader.readAsText(file);
     };
 }
